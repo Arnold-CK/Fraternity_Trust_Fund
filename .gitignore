@@ -1,3 +1,4 @@
 .streamlit
 secrets.toml
 run_streamlit.bat
+helpers.txt
