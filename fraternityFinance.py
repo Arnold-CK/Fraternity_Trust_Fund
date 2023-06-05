@@ -16,101 +16,122 @@ st.set_page_config(page_title="Fraternity Trust Fund",page_icon="💰")
 
 years = fx.get_years_since_2022()
 months = fx.get_all_months()
-names = fx.get_all_names()
+
 sheet_credentials = st.secrets["credentials"]
 gc = gspread.service_account_from_dict(sheet_credentials)
 
-st.title(':blue[Payments]')
+sidebar_selection = st.sidebar.selectbox("What would you like to enter?", ('Payments', 'Costs', 'UAP'))
 
-with st.form(key="payments",clear_on_submit=True):
+if sidebar_selection == 'Payments':
 
-    st.markdown("**Hi Alvin, please choose the month and year for which you are entering data**")
+    names = fx.get_all_names()
 
-    month, year = st.columns(2)
+    st.title(':blue[Payments]')
 
-    with month:
-        selected_month = st.selectbox("Month", months)
+    with st.form(key="payments",clear_on_submit=True):
 
-    with year:
-        selected_year = st.selectbox("Year", years)
+        st.markdown("**Hi Alvin, please choose the month and year for which you are entering data**")
 
-    st.write("---")
+        month, year = st.columns(2)
 
-    st.markdown("**Member Payments**")
+        with month:
+            selected_month = st.selectbox("Month", months)
 
-    name_column, amount = st.columns(2)
+        with year:
+            selected_year = st.selectbox("Year", years)
 
-    name_column.markdown("_Name_")
-    amount.markdown("_Amount_")
+        st.write("---")
 
-    name_input = dict()
+        st.markdown("**Member Payments**")
 
-    emoji_options = ["😃", "😄", "🐪", "😊", "🙂", "😎","💰","😁"]
-    
-    counter = 1
+        name_column, amount = st.columns(2)
 
-    for name in names:
+        name_column.markdown("_Name_")
+        amount.markdown("_Amount_")
 
-        amount_key = f"key{counter}"
+        name_input = dict()
 
-        name_input[name] = amount_key
-
-        emoji = choice(emoji_options)
-
-        with name_column:
-            st.write(emoji, " ", name)
-            st.write("")
-        with amount:
-                st.text_input(
-                placeholder="ugx", 
-                label=" ", 
-                label_visibility="collapsed", 
-                disabled=False, 
-                key=amount_key)
-                
-        counter += 1
-    
-    submitted = st.form_submit_button("Save")
-    
-    if submitted:
+        emoji_options = ["😃", "😄", "🐪", "😊", "🙂", "😎","💰","😁"]
         
-        with st.spinner("Saving Payments Data..."):
+        counter = 1
 
-            payments_for_insertion=[]
-            timezone = timezone("Africa/Nairobi")
-        
-            for name, amount_key in name_input.items():
-                
-                amount_entered = st.session_state.get(amount_key,"")
-        
-                if amount_entered.strip() != "" and int(amount_entered) > 0:
+        for name in names:
+
+            amount_key = f"key{counter}"
+
+            name_input[name] = amount_key
+
+            emoji = choice(emoji_options)
+
+            with name_column:
+                st.write(emoji, " ", name)
+                st.write("")
+            with amount:
+                    st.text_input(
+                    placeholder="ugx", 
+                    label=" ", 
+                    label_visibility="collapsed", 
+                    disabled=False, 
+                    key=amount_key)
                     
-                    timestamp = datetime.now(timezone).strftime("%d-%b-%Y %H:%M:%S" + " EAT")
-                    data = [timestamp, selected_month, name, amount_entered, selected_year]
+            counter += 1
         
-                    payments_for_insertion.append(data)
+        submitted = st.form_submit_button("Save")
+        
+        if submitted:
+            
+            with st.spinner("Saving Payments Data..."):
 
-            if payments_for_insertion:
+                payments_for_insertion=[]
+                timezone = timezone("Africa/Nairobi")
+            
+                for name, amount_key in name_input.items():
                     
-                fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
-                worksheet = fraternity_sheet.worksheet("Payments")
-
-                all_values = worksheet.get_all_values()
+                    amount_entered = st.session_state.get(amount_key,"")
             
-                next_row_index = len(all_values) + 1
+                    if amount_entered.strip() != "" and int(amount_entered) > 0:
+                        
+                        timestamp = datetime.now(timezone).strftime("%d-%b-%Y %H:%M:%S" + " EAT")
+                        data = [timestamp, selected_month, name, amount_entered, selected_year]
+            
+                        payments_for_insertion.append(data)
 
-                worksheet.append_rows(
-                        payments_for_insertion,
-                        value_input_option='user_entered',
-                        insert_data_option='insert_rows',
-                        table_range=f"a{next_row_index}"
-                    )
+                if payments_for_insertion:
+                        
+                    fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
+                    worksheet = fraternity_sheet.worksheet("Payments")
+
+                    all_values = worksheet.get_all_values()
                 
-                st.success("✅ Payments Saved Successfully. Feel free to close the application")
+                    next_row_index = len(all_values) + 1
 
-            else:
-                st.info("⚠️ Please enter an amount greater than zero in at least **ONE** of the text boxes")
+                    worksheet.append_rows(
+                            payments_for_insertion,
+                            value_input_option='user_entered',
+                            insert_data_option='insert_rows',
+                            table_range=f"a{next_row_index}"
+                        )
+                    
+                    st.success("✅ Payments Saved Successfully. Feel free to close the application")
 
-            
+                else:
+                    st.info("⚠️ Please enter an amount greater than zero in at least **ONE** of the text boxes")
 
+if sidebar_selection == 'Costs':
+     
+     st.title(':red[Costs]')
 
+     with st.form(key="costs",clear_on_submit=True):
+
+        st.markdown("**COSTS!!!**")
+
+        submitted = st.form_submit_button("Save")
+
+if sidebar_selection == 'UAP':
+     
+    st.title(':green[UAP]')
+
+    with st.form(key="UAP",clear_on_submit=True):
+
+        st.markdown("**UAP**")
+        submitted = st.form_submit_button("Save")
