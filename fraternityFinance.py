@@ -7,7 +7,6 @@ Created on Thu May 25 07:36:42 2023
 
 from datetime import datetime
 from random import choice
-import time
 from pytz import timezone
 import streamlit as st
 import functions as fx
