@@ -220,12 +220,82 @@ if sidebar_selection == 'Costs':
                 else:
                     st.info("⚠️ Please enter data in at least **ONE** row")
 
-
 if sidebar_selection == 'UAP':
      
     st.title(':green[UAP]')
 
     with st.form(key="UAP",clear_on_submit=True):
 
-        st.markdown("**UAP**")
+        st.markdown("**Hi Alvin, please choose the month and year for which you are entering data**")
+
+        month, year = st.columns(2)
+
+        with month:
+            selected_month = st.selectbox("Month", months)
+
+        with year:
+            selected_year = st.selectbox("Year", years)
+
+        st.write("---")
+
+        st.markdown("**UAP Portfolio Monthly Details**  (As shown in the Investment Statement)")
+
+        counter = 0
+
+        opening_key = f"key{counter}"
+        closing_key = f"key{counter + 1}"
+        interest_key = f"key{counter + 2}"
+
+        st.text_input(
+            label="Opening Balance",
+            placeholder="ugx",
+            disabled=False,
+            key=opening_key)
+        
+        st.text_input(
+            placeholder="ugx", 
+            label="Closing Balance", 
+            disabled=False, 
+            key=closing_key)
+        
+        st.text_input( 
+                label="Interest Rate", 
+                placeholder="%", 
+                disabled=False, 
+                key=interest_key)
+        
         submitted = st.form_submit_button("Save")
+        
+        if submitted:
+            
+            with st.spinner("Saving UAP Data..."):
+
+                timezone = timezone("Africa/Nairobi")
+
+                uap_opening = st.session_state.get(opening_key,"")
+                uap_closing = st.session_state.get(closing_key,"")
+                uap_interest = st.session_state.get(interest_key,"")
+                    
+                if int(uap_opening) > 0:
+                    
+                    timestamp = datetime.now(timezone).strftime("%d-%b-%Y %H:%M:%S" + " EAT")
+                    data = [timestamp, selected_month, selected_year, uap_closing, uap_opening, uap_interest]
+                        
+                    fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
+                    worksheet = fraternity_sheet.worksheet("UAP Portfolio")
+
+                    all_values = worksheet.get_all_values()
+                
+                    next_row_index = len(all_values) + 1
+
+                    worksheet.append_row(
+                            data,
+                            value_input_option='user_entered',
+                            insert_data_option='insert_rows',
+                            table_range=f"a{next_row_index}"
+                        )
+                    
+                    st.success("✅ UAP data Saved Successfully. Feel free to close the application")
+
+                else:
+                    st.info("⚠️ Please enter data in at least **ONE** row")
