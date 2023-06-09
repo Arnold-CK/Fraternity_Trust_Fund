@@ -119,13 +119,107 @@ if sidebar_selection == 'Payments':
 
 if sidebar_selection == 'Costs':
      
-     st.title(':red[Costs]')
+    st.title(':red[Costs]')
 
-     with st.form(key="costs",clear_on_submit=True):
+    with st.form(key="costs",clear_on_submit=True):
 
-        st.markdown("**COSTS!!!**")
+        st.markdown("**Hi Alvin, please choose the month and year for which you are entering data**")
 
+        month, year = st.columns(2)
+
+        with month:
+            selected_month = st.selectbox("Month", months)
+
+        with year:
+            selected_year = st.selectbox("Year", years)
+
+        st.write("---")
+
+        st.markdown("**Monthly Fund Costs**")
+
+        item, amount, narrative = st.columns(3)
+
+        item.markdown("_Cost Item_")
+        amount.markdown("_Amount_")
+        narrative.markdown("_Narrative_")
+
+        identifier = dict()
+
+        counter = 1
+
+        for i in range(0,3):
+
+            item_key = f"key{counter}"
+            amount_key = f"key{counter + 1}"
+            narrative_key = f"key{counter + 2}"
+
+            identifier[i] = [item_key,amount_key,narrative_key]
+
+            with item:
+                st.text_input(
+                    label=" ",
+                    label_visibility="collapsed",
+                    disabled=False,
+                    key=item_key)
+            with amount:
+                    st.text_input(
+                    placeholder="ugx", 
+                    label=" ", 
+                    label_visibility="collapsed", 
+                    disabled=False, 
+                    key=amount_key)
+            with narrative:
+                    st.text_input( 
+                    label=" ", 
+                    label_visibility="collapsed", 
+                    disabled=False, 
+                    key=narrative_key)
+                    
+            counter += 3
+        
         submitted = st.form_submit_button("Save")
+        
+        if submitted:
+            
+            with st.spinner("Saving Cost Data..."):
+
+                costs_for_insertion=[]
+                timezone = timezone("Africa/Nairobi")
+            
+                for identifier, input_list in identifier.items():
+                    
+                    cost_item = st.session_state.get(input_list[0],"")
+                    cost_amount = st.session_state.get(input_list[1],"")
+                    cost_narrative = st.session_state.get(input_list[2],"")
+                    
+                    if cost_item.strip() and int(cost_amount) > 0:
+                        
+                        timestamp = datetime.now(timezone).strftime("%d-%b-%Y %H:%M:%S" + " EAT")
+                        data = [timestamp, selected_month, cost_item, cost_amount, cost_narrative, selected_year]
+            
+                        costs_for_insertion.append(data)
+
+                if costs_for_insertion:
+                        
+                    fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
+                    worksheet = fraternity_sheet.worksheet("Costs")
+
+                    all_values = worksheet.get_all_values()
+                
+                    next_row_index = len(all_values) + 1
+
+                    worksheet.append_rows(
+                            costs_for_insertion,
+                            value_input_option='user_entered',
+                            insert_data_option='insert_rows',
+                            table_range=f"a{next_row_index}"
+                        )
+                    
+                    st.success("✅ Cost data Saved Successfully. Feel free to close the application")
+
+                else:
+                    st.info("⚠️ Please enter data in at least **ONE** row")
+
 
 if sidebar_selection == 'UAP':
      
