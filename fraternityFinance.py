@@ -327,9 +327,9 @@ if sidebar_selection == "UAP":
 
                 if uap_interest.strip():
                     if uap_interest.endswith("%"):
-                        uap_interest_value = float(uap_interest.strip("%"))
+                        uap_interest_value = float(uap_interest.strip("%"))/100.0
                     else:
-                        uap_interest_value = float(uap_interest.strip())
+                        uap_interest_value = float(uap_interest.strip())/100.0
                     if uap_interest_value <= 0.0:
                         is_valid = False
                         st.error("🚨 Please enter an interest rate greater than zero")
