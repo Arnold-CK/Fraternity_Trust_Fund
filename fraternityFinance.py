@@ -83,28 +83,41 @@ if sidebar_selection == "Payments":
         submitted = st.form_submit_button("Save")
 
         if submitted:
-            with st.spinner("Saving Payments Data..."):
+            with st.spinner("Validating Payments Form..."):
+                payments_form_isvalid = True
+                validation_list = list()
+
                 payments_for_insertion = []
                 timezone = timezone("Africa/Nairobi")
 
                 for name, amount_key in name_input.items():
                     amount_entered = st.session_state.get(amount_key, "")
 
-                    if amount_entered.strip() != "" and int(amount_entered) > 0:
-                        timestamp = datetime.now(timezone).strftime(
-                            "%d-%b-%Y %H:%M:%S" + " EAT"
-                        )
-                        data = [
-                            timestamp,
-                            selected_month,
-                            name,
-                            amount_entered,
-                            selected_year,
-                        ]
+                    if amount_entered.strip():
+                        amount_paid = int(amount_entered.strip())
+                    else:
+                        continue
 
-                        payments_for_insertion.append(data)
+                    timestamp = datetime.now(timezone).strftime(
+                        "%d-%b-%Y %H:%M:%S" + " EAT"
+                    )
+                    data = [
+                        timestamp,
+                        selected_month,
+                        name,
+                        amount_paid,
+                        selected_year,
+                    ]
 
-                if payments_for_insertion:
+                    payments_for_insertion.append(data)
+                    validation_list.append(amount_paid)
+
+            payments_form_isvalid = all(item > 0 for item in validation_list)
+            if not payments_form_isvalid:
+                st.error("🚨 All payments entered must be greater than zero")
+
+            if payments_form_isvalid:
+                with st.spinner("Saving payments data..."):
                     fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
                     worksheet = fraternity_sheet.worksheet("Payments")
 
@@ -121,11 +134,6 @@ if sidebar_selection == "Payments":
 
                     st.success(
                         "✅ Payments Saved Successfully. Feel free to close the application"
-                    )
-
-                else:
-                    st.info(
-                        "⚠️ Please enter an amount greater than zero in at least **ONE** of the text boxes"
                     )
 
 if sidebar_selection == "Costs":
