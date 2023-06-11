@@ -83,28 +83,41 @@ if sidebar_selection == "Payments":
         submitted = st.form_submit_button("Save")
 
         if submitted:
-            with st.spinner("Saving Payments Data..."):
+            with st.spinner("Validating Payments Form..."):
+                payments_form_isvalid = True
+                validation_list = list()
+
                 payments_for_insertion = []
                 timezone = timezone("Africa/Nairobi")
 
                 for name, amount_key in name_input.items():
                     amount_entered = st.session_state.get(amount_key, "")
 
-                    if amount_entered.strip() != "" and int(amount_entered) > 0:
-                        timestamp = datetime.now(timezone).strftime(
-                            "%d-%b-%Y %H:%M:%S" + " EAT"
-                        )
-                        data = [
-                            timestamp,
-                            selected_month,
-                            name,
-                            amount_entered,
-                            selected_year,
-                        ]
+                    if amount_entered.strip():
+                        amount_paid = int(amount_entered.strip())
+                    else:
+                        continue
 
-                        payments_for_insertion.append(data)
+                    timestamp = datetime.now(timezone).strftime(
+                        "%d-%b-%Y %H:%M:%S" + " EAT"
+                    )
+                    data = [
+                        timestamp,
+                        selected_month,
+                        name,
+                        amount_paid,
+                        selected_year,
+                    ]
 
-                if payments_for_insertion:
+                    payments_for_insertion.append(data)
+                    validation_list.append(amount_paid)
+
+            payments_form_isvalid = all(item > 0 for item in validation_list)
+            if not payments_form_isvalid:
+                st.error("🚨 All payments entered must be greater than zero")
+
+            if payments_form_isvalid:
+                with st.spinner("Saving payments data..."):
                     fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
                     worksheet = fraternity_sheet.worksheet("Payments")
 
@@ -121,11 +134,6 @@ if sidebar_selection == "Payments":
 
                     st.success(
                         "✅ Payments Saved Successfully. Feel free to close the application"
-                    )
-
-                else:
-                    st.info(
-                        "⚠️ Please enter an amount greater than zero in at least **ONE** of the text boxes"
                     )
 
 if sidebar_selection == "Costs":
@@ -193,31 +201,57 @@ if sidebar_selection == "Costs":
         submitted = st.form_submit_button("Save")
 
         if submitted:
-            with st.spinner("Saving Cost Data..."):
-                costs_for_insertion = []
-                timezone = timezone("Africa/Nairobi")
+            costs_for_insertion = []
+            timezone = timezone("Africa/Nairobi")
+
+            with st.spinner("Validating form..."):
+                cost_form_entry_isValid = True
 
                 for identifier, input_list in identifier.items():
                     cost_item = st.session_state.get(input_list[0], "")
                     cost_amount = st.session_state.get(input_list[1], "")
                     cost_narrative = st.session_state.get(input_list[2], "")
 
-                    if cost_item.strip() and int(cost_amount) > 0:
+                    if (
+                        not cost_item.strip()
+                        and not cost_amount.strip()
+                        and not cost_narrative.strip()
+                    ):
+                        continue
+
+                    if cost_item.strip():
+                        if cost_amount.strip():
+                            cost_amount_value = int(cost_amount.strip())
+                            if cost_amount_value <= 0:
+                                cost_form_entry_isValid = False
+                                st.error(
+                                    "🚨 Please enter a cost amount greater than zero"
+                                )
+                        else:
+                            cost_form_entry_isValid = False
+                            st.error("⚠️ Cost amount cannot be blank")
+
+                    if cost_amount.strip() and not cost_item.strip():
+                        cost_form_entry_isValid = False
+                        st.error("⚠️ Cost item cannot be blank")
+
+                    if cost_form_entry_isValid:
                         timestamp = datetime.now(timezone).strftime(
                             "%d-%b-%Y %H:%M:%S" + " EAT"
                         )
                         data = [
                             timestamp,
                             selected_month,
-                            cost_item,
-                            cost_amount,
-                            cost_narrative,
+                            cost_item.strip(),
+                            cost_amount_value,
+                            cost_narrative.strip(),
                             selected_year,
                         ]
 
                         costs_for_insertion.append(data)
 
-                if costs_for_insertion:
+            if costs_for_insertion:
+                with st.spinner("Saving Cost data..."):
                     fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
                     worksheet = fraternity_sheet.worksheet("Costs")
 
@@ -235,9 +269,6 @@ if sidebar_selection == "Costs":
                     st.success(
                         "✅ Cost data Saved Successfully. Feel free to close the application"
                     )
-
-                else:
-                    st.info("⚠️ Please enter data in at least **ONE** row")
 
 if sidebar_selection == "UAP":
     st.title(":green[UAP]")
@@ -257,9 +288,9 @@ if sidebar_selection == "UAP":
 
         st.write("---")
 
-        st.markdown(
-            "**UAP Portfolio Monthly Details**  (As shown in the Investment Statement)"
-        )
+        st.markdown("**UAP Portfolio Monthly Details**")
+
+        st.caption("_As shown in the Investment Statement_")
 
         counter = 0
 
@@ -267,38 +298,39 @@ if sidebar_selection == "UAP":
         closing_key = f"key{counter + 1}"
         interest_key = f"key{counter + 2}"
 
-        st.text_input(
-            label="Opening Balance",
-            placeholder="ugx",
-            disabled=False,
-            help="Please enter a value greater than zero",
-            key=opening_key,
-        )
+        holder_column, dummy_column = st.columns(2)
 
-        st.text_input(
-            placeholder="ugx",
-            label="Closing Balance",
-            disabled=False,
-            help="Please enter a value greater than zero",
-            key=closing_key,
-        )
+        with holder_column:
+            st.text_input(
+                label="Opening Balance",
+                placeholder="ugx",
+                disabled=False,
+                help="Please enter a value greater than zero",
+                key=opening_key,
+            )
 
-        st.text_input(
-            label="Interest Rate",
-            placeholder="%",
-            help="Please enter a value greater than zero",
-            disabled=False,
-            key=interest_key,
-        )
+            st.text_input(
+                placeholder="ugx",
+                label="Closing Balance",
+                disabled=False,
+                help="Please enter a value greater than zero",
+                key=closing_key,
+            )
+
+            st.text_input(
+                label="Interest Rate",
+                placeholder="%",
+                help="Please enter a value greater than zero",
+                disabled=False,
+                key=interest_key,
+            )
 
         submitted = st.form_submit_button("Save")
 
         if submitted:
-
             is_valid = True
 
             with st.spinner("🔍 Validating form..."):
-
                 uap_opening = st.session_state.get(opening_key, "")
                 uap_closing = st.session_state.get(closing_key, "")
                 uap_interest = st.session_state.get(interest_key, "")
@@ -327,9 +359,9 @@ if sidebar_selection == "UAP":
 
                 if uap_interest.strip():
                     if uap_interest.endswith("%"):
-                        uap_interest_value = float(uap_interest.strip("%"))/100.0
+                        uap_interest_value = float(uap_interest.strip("%")) / 100.0
                     else:
-                        uap_interest_value = float(uap_interest.strip())/100.0
+                        uap_interest_value = float(uap_interest.strip()) / 100.0
                     if uap_interest_value <= 0.0:
                         is_valid = False
                         st.error("🚨 Please enter an interest rate greater than zero")
@@ -338,13 +370,11 @@ if sidebar_selection == "UAP":
                     st.error("⚠️ Interest rate cannot be blank")
 
             if is_valid:
-
                 st.info("👍 Form is Valid")
 
                 with st.spinner("Saving UAP data..."):
-
                     timezone = timezone("Africa/Nairobi")
-                    
+
                     timestamp = datetime.now(timezone).strftime(
                         "%d-%b-%Y %H:%M:%S" + " EAT"
                     )
