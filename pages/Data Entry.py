@@ -120,7 +120,8 @@ else:
                             "%d-%b-%Y %H:%M:%S" + " EAT"
                         )
 
-                        month_number = fx.get_month_number(selected_month)
+                        date_string = f"1 {selected_month} {selected_year}"
+                        data_date = datetime.strptime(date_string, "%d %B %Y").date()
 
                         data = [
                             timestamp,
@@ -128,7 +129,7 @@ else:
                             name,
                             amount_paid,
                             selected_year,
-                            month_number,
+                            data_date,
                         ]
 
                         payments_for_insertion.append(data)
@@ -262,7 +263,10 @@ else:
                                 "%d-%b-%Y %H:%M:%S" + " EAT"
                             )
 
-                            month_number = fx.get_month_number(selected_month)
+                            date_string = f"1 {selected_month} {selected_year}"
+                            data_date = datetime.strptime(
+                                date_string, "%d %B %Y"
+                            ).date()
 
                             data = [
                                 timestamp,
@@ -271,7 +275,7 @@ else:
                                 cost_amount_value,
                                 cost_narrative.strip(),
                                 selected_year,
-                                month_number,
+                                data_date,
                             ]
 
                             costs_for_insertion.append(data)
@@ -411,7 +415,8 @@ else:
                             "%d-%b-%Y %H:%M:%S" + " EAT"
                         )
 
-                        month_number = fx.get_month_number(selected_month)
+                        date_string = f"1 {selected_month} {selected_year}"
+                        data_date = datetime.strptime(date_string, "%d %B %Y").date()
 
                         data = [
                             timestamp,
@@ -420,7 +425,7 @@ else:
                             uap_closing_value,
                             uap_opening_value,
                             uap_interest_value,
-                            month_number,
+                            data_date,
                         ]
 
                         fraternity_sheet = gc.open_by_key(st.secrets["sheet_key"])
