@@ -24,9 +24,17 @@ with st.spinner("🔃 Loading dashboard..."):
 
     member_payments = payments_df["Amount Deposited"].sum()
 
-    # sorted_uap_df = uap_df.sort_values(by=["Year, Month"], ascending=False)
-    # amount_on_uap = sorted_uap_df["Closing Balance"].iloc[0]
+    data_types = uap_df.dtypes
+
     average_interest = uap_df["Interest rate"].mean()
+    amount_df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(uap_df["Data Date"]),
+            "Amount": uap_df["Closing Balance"],
+        }
+    )
+    max_date = amount_df["Date"].max()
+    amount_on_max_date = amount_df.loc[amount_df["Date"] == max_date, "Amount"]
 
     analysis_sidebar_selection = st.sidebar.selectbox(
         "Which analysis would you like to see?", ("General", "Individual")
@@ -46,8 +54,7 @@ with st.spinner("🔃 Loading dashboard..."):
         with ttl_uap:
             st.metric(
                 "Amount on UAP",
-                100,
-                # millify(amount_on_uap, precision=2),
+                millify(amount_on_max_date, precision=2),
                 help="Total Amount on UAP",
             )
         with ttl_interest:
