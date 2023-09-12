@@ -11,11 +11,14 @@ from datetime import date
 
 import gspread
 import streamlit as st
+import streamlit_authenticator as stauth
 
 
 def get_years_since_2022():
     current_year = date.today().year
-    return list(range(2022, current_year + 1))
+    year_list = list(range(2022, current_year + 1))
+    year_list.sort(reverse=True)
+    return year_list
 
 
 @st.cache_data
@@ -122,4 +125,13 @@ def is_alvin(password):
     if password == str(456):
         return True
     else:
-        return False
+        return
+
+
+# def hash():
+#     hashed_passwords = stauth.Hasher(["123", "456"]).generate()
+#     return hashed_passwords
+
+
+# answer = hash()
+# print(answer)

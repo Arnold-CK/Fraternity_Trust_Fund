@@ -1,0 +1,34 @@
+credentials:
+  usernames:
+    phillip:
+      email: phillip.musumba.52@gmail.com
+      name: Phillip Musumba
+      password: $2b$12$bjlj7qVgKYf20VyUFHjETuufb06ciMp72eZO46qtBauWiS1T3rcUu
+    alvin:
+      email: michaelmulumbaalvin@gmail.com
+      name: Alvin Mulumba
+      password: $2b$12$Ko/JIXCA4Z0dMf8vPp.Jye4FaLuUgjT7xhNgSh84UkvlfMBsK0C8a
+    arnold:
+      email: arnoldcyprian@gmail.com
+      name: Arnold Kigonya
+      password: $2b$12$bjlj7qVgKYf20VyUFHjETuufb06ciMp72eZO46qtBauWiS1T3rcUu
+    edwin:
+      email: mpozaedwinjerome@gmail.com
+      name: Edwin Mpoza
+      password: $2b$12$bjlj7qVgKYf20VyUFHjETuufb06ciMp72eZO46qtBauWiS1T3rcUu
+    dennis:
+      email: ssekimpid@gmail.com
+      name: Dennis Ssekimpi
+      password: $2b$12$bjlj7qVgKYf20VyUFHjETuufb06ciMp72eZO46qtBauWiS1T3rcUu
+    adrean:
+      email: adreanmugalaasi@gmail.com
+      name: Adrean Mugalaasi
+      password: $2b$12$bjlj7qVgKYf20VyUFHjETuufb06ciMp72eZO46qtBauWiS1T3rcUu
+cookie:
+  expiry_days: 100
+  key: "1CD88BD7-95A7-B64D-9BEA-B56118FCC81B" # Must be string
+  name: fratCookie
+preauthorized:
+  emails:
+  - arnold.kigonya96@gmail.com
+
