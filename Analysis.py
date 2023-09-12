@@ -15,11 +15,170 @@ from yaml.loader import SafeLoader
 
 from Functions import functions as fx
 
-# region PAGE-CONFIG
-st.set_page_config(page_title="Fraternity Trust Fund", page_icon="💰", layout="wide")
-# endregion
 
-# region USER AUTHENTICATION
+@st.cache_data
+def load_data():
+    fraternity_workbook = load_workbook()
+
+    payments_worksheet = fraternity_workbook.worksheet("Payments")
+    payments_df = get_as_dataframe(payments_worksheet, parse_dates=True)
+
+    uap_worksheet = fraternity_workbook.worksheet("UAP Portfolio")
+    uap_df = get_as_dataframe(uap_worksheet, parse_dates=True)
+
+    return payments_df, uap_df, fraternity_workbook
+
+
+@st.cache_resource
+def load_workbook():
+    sheet_credentials = st.secrets["sheet_credentials"]
+    google_spreadsheet_client = gspread.service_account_from_dict(sheet_credentials)
+    workbook = google_spreadsheet_client.open_by_key(st.secrets["sheet_key"])
+
+    return workbook
+
+
+def general_dashboard(payments_df, uap_df):
+    search_year, search_month = st.columns(2)
+    with search_year:
+        selected_year = st.selectbox("Year", fx.get_years_since_2022())
+    with search_month:
+        selected_month = st.selectbox(
+            "Month",
+            fx.get_all_months(),
+        )
+
+    year_filtered_payments_df = payments_df[payments_df["Year"] == selected_year]
+    year_filtered_uap_df = uap_df[payments_df["Year"] == selected_year]
+
+    month_filtered_payments_df = year_filtered_payments_df[
+        year_filtered_payments_df["Year"] == selected_month
+    ]
+    month_filtered_uap_df = year_filtered_uap_df[
+        year_filtered_uap_df["Year"] == selected_month
+    ]
+
+    total_payment = payments_df["Amount Deposited"].sum()
+    average_interest = uap_df["Interest rate"].mean()
+    closing_balance_df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(uap_df["Data Date"]),
+            "Amount": uap_df["Closing Balance"],
+        }
+    )
+    max_date = closing_balance_df["Date"].max()
+    amount_on_max_date = closing_balance_df.loc[
+        closing_balance_df["Date"] == max_date, "Amount"
+    ]
+
+    st.write("---")
+
+    ttl_payments, ttl_uap, ttl_interest = st.columns(3)
+
+    with ttl_payments:
+        st.metric(
+            "Amount paid by Members",
+            millify(total_payment, precision=2),
+            help="Total Member Payments (Including Non-UAP Deposits)",
+        )
+    with ttl_uap:
+        st.metric(
+            "Amount on UAP",
+            millify(amount_on_max_date, precision=2),
+            help="Total Amount on UAP",
+        )
+    with ttl_interest:
+        st.metric("Average Interest Earned", "{:.2%}".format(average_interest))
+
+    st.write("---")
+
+    filtered_df = uap_df[uap_df["Year"] == selected_year]
+
+    interest_df = pd.DataFrame(
+        {
+            "Month": pd.to_datetime(filtered_df["Data Date"]),
+            "Interest Rate (%)": filtered_df["Interest rate"] * 100,
+        }
+    )
+    line = (
+        alt.Chart(interest_df)
+        .mark_line()
+        .encode(
+            x=alt.X("Month:T", timeUnit="month"),
+            y=alt.Y("Interest Rate (%):Q"),
+        )
+        .properties(
+            title=alt.TitleParams(
+                text="Interest rate by Month", anchor="middle", fontSize=35
+            )
+        )
+    )
+
+    points = line.mark_point()
+
+    st.altair_chart(line + points, use_container_width=True)
+
+    closing_balance_graph_df = pd.DataFrame(
+        {
+            "Month": pd.to_datetime(filtered_df["Data Date"]),
+            "Account Balance": filtered_df["Closing Balance"],
+        }
+    )
+    closing_balance_graph = (
+        alt.Chart(closing_balance_graph_df)
+        .mark_area()
+        .encode(
+            x=alt.X("Month:T", timeUnit="month"),
+            y=alt.Y("Account Balance:Q"),
+        )
+        .properties(
+            title=alt.TitleParams(
+                text="UAP Acct Closing Balance by Month",
+                anchor="middle",
+                fontSize=35,
+            )
+        )
+    )
+
+    c_points = closing_balance_graph.mark_point()
+
+    st.altair_chart(closing_balance_graph + c_points, use_container_width=True)
+
+
+def personal_dashboard(current_user, payments_df, uap_df):
+    user_filtered_payments_df = payments_df[payments_df["Name"] == current_user]
+    average_interest = uap_df["Interest rate"].mean()
+    user_payments, user_interest, user_ttl = st.columns(3)
+
+    user_ttl_paid = user_filtered_payments_df["Amount Deposited"].sum()
+    ttl_earned = user_ttl_paid + (average_interest * user_ttl_paid)
+
+    with user_payments:
+        st.metric(
+            "Total Amount Paid",
+            millify(user_ttl_paid, precision=2),
+            help="Amount that you have so far put in Fraternity",
+        )
+    with user_interest:
+        st.metric(
+            "Average Interest Earned",
+            "{:.2%}".format(average_interest),
+        )
+    with user_ttl:
+        st.metric(
+            "Total Amount in Fraternity",
+            millify(ttl_earned, precision=2),
+        )
+
+    transactions_df = user_filtered_payments_df.loc[
+        :, ["Name", "Month", "Year", "Amount Deposited"]
+    ].dropna()
+
+    st.dataframe(transactions_df, use_container_width=True)
+
+
+# Streamlit setup
+st.set_page_config(page_title="Fraternity Trust Fund", page_icon="💰", layout="wide")
 
 with open("./config.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
@@ -33,28 +192,15 @@ authenticator = stauth.Authenticate(
 )
 
 name, authentication_status, username = authenticator.login("Login", "main")
-# endregion
 
 if authentication_status:
-    # --- Get Current User ---
     current_user = st.session_state["name"]
-    # region LOAD DATA
+
+    payments_df, uap_df, fraternity_workbook = load_data()
 
     years = fx.get_years_since_2022()
     months = fx.get_all_months()
 
-    sheet_credentials = st.secrets["sheet_credentials"]
-    google_spreadsheet_client = gspread.service_account_from_dict(sheet_credentials)
-    fraternity_workbook = google_spreadsheet_client.open_by_key(st.secrets["sheet_key"])
-
-    payments_worksheet = fraternity_workbook.worksheet("Payments")
-    payments_df = get_as_dataframe(payments_worksheet, parse_dates=True)
-
-    uap_worksheet = fraternity_workbook.worksheet("UAP Portfolio")
-    uap_df = get_as_dataframe(uap_worksheet, parse_dates=True)
-    # endregion
-
-    # region LOAD NAV-BAR
     options = (
         ["Dashboard", "Data Entry"]
         if current_user == "Alvin Mulumba"
@@ -63,156 +209,22 @@ if authentication_status:
     option_icons = (
         ["bar-chart-line", "clipboard-data"]
         if current_user == "Alvin Mulumba"
-        else ["bar-chart-line"],
+        else ["bar-chart-line"]
     )
+
     with st.sidebar:
         nav_bar = option_menu(
             current_user, options, icons=option_icons, menu_icon="person-circle"
         )
 
-    # endregion
-
     if nav_bar == "Dashboard":
         general, personal = st.tabs(["🎡 General", "🕴🏾 Personal"])
-        # --- General Dashboard ---
+
         with general:
-            search_year, search_month = st.columns(2)
-            with search_year:
-                selected_year = st.selectbox("Year", fx.get_years_since_2022())
-            with search_month:
-                selected_month = st.selectbox(
-                    "Month",
-                    fx.get_all_months(),
-                )
+            general_dashboard(payments_df, uap_df)
 
-            year_filtered_payments_df = payments_df[
-                payments_df["Year"] == selected_year
-            ]
-            year_filtered_uap_df = uap_df[payments_df["Year"] == selected_year]
-
-            month_filtered_payments_df = year_filtered_payments_df[
-                year_filtered_payments_df["Year"] == selected_month
-            ]
-            month_filtered_uap_df = year_filtered_uap_df[
-                year_filtered_uap_df["Year"] == selected_month
-            ]
-
-            total_payment = payments_df["Amount Deposited"].sum()
-            average_interest = uap_df["Interest rate"].mean()
-            closing_balance_df = pd.DataFrame(
-                {
-                    "Date": pd.to_datetime(uap_df["Data Date"]),
-                    "Amount": uap_df["Closing Balance"],
-                }
-            )
-            max_date = closing_balance_df["Date"].max()
-            amount_on_max_date = closing_balance_df.loc[
-                closing_balance_df["Date"] == max_date, "Amount"
-            ]
-
-            st.write("---")
-
-            ttl_payments, ttl_uap, ttl_interest = st.columns(3)
-
-            with ttl_payments:
-                st.metric(
-                    "Amount paid by Members",
-                    millify(total_payment, precision=2),
-                    help="Total Member Payments (Including Non-UAP Deposits)",
-                )
-            with ttl_uap:
-                st.metric(
-                    "Amount on UAP",
-                    millify(amount_on_max_date, precision=2),
-                    help="Total Amount on UAP",
-                )
-            with ttl_interest:
-                st.metric("Average Interest Earned", "{:.2%}".format(average_interest))
-
-            st.write("---")
-
-            filtered_df = uap_df[uap_df["Year"] == selected_year]
-
-            interest_df = pd.DataFrame(
-                {
-                    "Month": pd.to_datetime(filtered_df["Data Date"]),
-                    "Interest Rate (%)": filtered_df["Interest rate"] * 100,
-                }
-            )
-            line = (
-                alt.Chart(interest_df)
-                .mark_line()
-                .encode(
-                    x=alt.X("Month:T", timeUnit="month"),
-                    y=alt.Y("Interest Rate (%):Q"),
-                )
-                .properties(
-                    title=alt.TitleParams(
-                        text="Interest rate by Month", anchor="middle", fontSize=35
-                    )
-                )
-            )
-
-            points = line.mark_point()
-
-            st.altair_chart(line + points, use_container_width=True)
-
-            closing_balance_graph_df = pd.DataFrame(
-                {
-                    "Month": pd.to_datetime(filtered_df["Data Date"]),
-                    "Account Balance": filtered_df["Closing Balance"],
-                }
-            )
-            closing_balance_graph = (
-                alt.Chart(closing_balance_graph_df)
-                .mark_area()
-                .encode(
-                    x=alt.X("Month:T", timeUnit="month"),
-                    y=alt.Y("Account Balance:Q"),
-                )
-                .properties(
-                    title=alt.TitleParams(
-                        text="UAP Acct Closing Balance by Month",
-                        anchor="middle",
-                        fontSize=35,
-                    )
-                )
-            )
-
-            c_points = closing_balance_graph.mark_point()
-
-            st.altair_chart(closing_balance_graph + c_points, use_container_width=True)
-
-        # --- Personal Dashboard ---
         with personal:
-            user_filtered_payments_df = payments_df[payments_df["Name"] == current_user]
-            user_payments, user_interest, user_ttl = st.columns(3)
-
-            user_ttl_paid = user_filtered_payments_df["Amount Deposited"].sum()
-            ttl_earned = user_ttl_paid + (average_interest * user_ttl_paid)
-
-            with user_payments:
-                st.metric(
-                    "Total Amount Paid",
-                    millify(user_ttl_paid, precision=2),
-                    help="Amount that you have so far put in Fraternity",
-                )
-            with user_interest:
-                st.metric(
-                    "Average Interest Earned",
-                    "{:.2%}".format(average_interest),
-                )
-            with user_ttl:
-                st.metric(
-                    "Total Amount in Fraternity",
-                    millify(ttl_earned, precision=2),
-                )
-
-            transactions_df = user_filtered_payments_df.loc[
-                :, ["Name", "Month", "Year", "Amount Deposited"]
-            ].dropna()
-
-            st.dataframe(transactions_df, use_container_width=True)
+            personal_dashboard(current_user, payments_df, uap_df)
 
     if nav_bar == "Data Entry":
         costs, payments, uap = st.tabs(["📕 Costs", "📗 Payments", "💹 UAP"])
@@ -622,5 +634,6 @@ if authentication_status:
 
 elif authentication_status is False:
     st.error("Username/password is incorrect")
+
 elif authentication_status is None:
     st.warning("Please enter your username and password")
