@@ -1,5 +1,5 @@
 import random
-from datetime import date, datetime
+from datetime import datetime
 
 import altair as alt
 import gspread
