@@ -4,3 +4,8 @@ run_streamlit.bat
 helpers.txt
 fratEnv
 .vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
