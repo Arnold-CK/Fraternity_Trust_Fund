@@ -13,7 +13,7 @@ from pytz import timezone
 from streamlit_option_menu import option_menu as option_menu
 from yaml.loader import SafeLoader
 
-from Functions import functions as fx
+import functions as fx
 
 
 def load_data():
