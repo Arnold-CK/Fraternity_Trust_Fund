@@ -16,14 +16,12 @@ from yaml.loader import SafeLoader
 from Functions import functions as fx
 
 
-@st.cache_data
 def load_data():
     fraternity_workbook = load_workbook()
+    payments_worksheet = open_sheet("Payments")
+    uap_worksheet = open_sheet("UAP Portfolio")
 
-    payments_worksheet = fraternity_workbook.worksheet("Payments")
     payments_df = get_as_dataframe(payments_worksheet, parse_dates=True)
-
-    uap_worksheet = fraternity_workbook.worksheet("UAP Portfolio")
     uap_df = get_as_dataframe(uap_worksheet, parse_dates=True)
 
     return payments_df, uap_df, fraternity_workbook
@@ -34,8 +32,17 @@ def load_workbook():
     sheet_credentials = st.secrets["sheet_credentials"]
     google_spreadsheet_client = gspread.service_account_from_dict(sheet_credentials)
     workbook = google_spreadsheet_client.open_by_key(st.secrets["sheet_key"])
-
     return workbook
+
+
+def open_sheet(sheet_name):
+    try:
+        fraternity_workbook = load_workbook()
+        worksheet = fraternity_workbook.worksheet(sheet_name)
+        return worksheet
+    except gspread.exceptions.WorksheetNotFound:
+        # Handle the case where the worksheet with the given name is not found.
+        return None
 
 
 def general_dashboard(payments_df, uap_df):
@@ -52,10 +59,10 @@ def general_dashboard(payments_df, uap_df):
     year_filtered_uap_df = uap_df[payments_df["Year"] == selected_year]
 
     month_filtered_payments_df = year_filtered_payments_df[
-        year_filtered_payments_df["Year"] == selected_month
+        year_filtered_payments_df["Month"] == selected_month
     ]
     month_filtered_uap_df = year_filtered_uap_df[
-        year_filtered_uap_df["Year"] == selected_month
+        year_filtered_uap_df["Month"] == selected_month
     ]
 
     total_payment = payments_df["Amount Deposited"].sum()
@@ -344,14 +351,14 @@ if authentication_status:
                                     cost_amount_value,
                                     cost_narrative.strip(),
                                     selected_year,
-                                    data_date,
+                                    str(data_date),
                                 ]
 
                                 costs_for_insertion.append(data)
 
                     if costs_for_insertion:
                         with st.spinner("Saving Cost data..."):
-                            worksheet = fraternity_workbook.worksheet("Costs")
+                            worksheet = open_sheet("Costs")
 
                             all_values = worksheet.get_all_values()
 
@@ -454,7 +461,7 @@ if authentication_status:
                                 name,
                                 amount_paid,
                                 selected_year,
-                                data_date,
+                                str(data_date),
                             ]
 
                             payments_for_insertion.append(data)
@@ -466,7 +473,7 @@ if authentication_status:
 
                     if payments_form_isvalid:
                         with st.spinner("Saving payments data..."):
-                            worksheet = fraternity_workbook.worksheet("Payments")
+                            worksheet = open_sheet("Payments")
 
                             all_values = worksheet.get_all_values()
 
@@ -611,9 +618,9 @@ if authentication_status:
                                 uap_closing_value,
                                 uap_opening_value,
                                 uap_interest_value,
-                                data_date,
+                                str(data_date),
                             ]
-                            worksheet = fraternity_workbook.worksheet("UAP Portfolio")
+                            worksheet = open_sheet("UAP Portfolio")
 
                             all_values = worksheet.get_all_values()
 
