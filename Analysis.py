@@ -1,4 +1,5 @@
 import random
+import re
 from datetime import datetime
 
 import altair as alt
@@ -154,6 +155,9 @@ def general_dashboard(payments_df, uap_df):
 
 def personal_dashboard(current_user, payments_df, uap_df):
     user_filtered_payments_df = payments_df[payments_df["Name"] == current_user]
+    user_filtered_payments_df = user_filtered_payments_df.sort_values(
+        by="Payment Month", ascending=False
+    )
     average_interest = uap_df["Interest rate"].mean()
     user_payments, user_interest, user_ttl = st.columns(3)
 
@@ -181,7 +185,16 @@ def personal_dashboard(current_user, payments_df, uap_df):
         :, ["Name", "Month", "Year", "Amount Deposited"]
     ].dropna()
 
-    st.dataframe(transactions_df, use_container_width=True)
+    transactions_df["Year"] = pd.to_datetime(
+        transactions_df["Year"].astype(int), format="%Y"
+    )
+    transactions_df["Year"] = transactions_df["Year"].dt.strftime("%Y")
+
+    st.dataframe(
+        transactions_df,
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 # Streamlit setup
@@ -640,7 +653,7 @@ if authentication_status:
     authenticator.logout("Logout", "sidebar", key="unique_key")
 
 elif authentication_status is False:
-    st.error("Username/password is incorrect")
+    st.error("Username/Password is incorrect")
 
 elif authentication_status is None:
     st.info("Please enter your **Firstname** and Password")
