@@ -24,6 +24,10 @@ credentials:
       email: adreanmugalaasi@gmail.com
       name: Adrean Mugalaasi
       password: $2b$12$bjlj7qVgKYf20VyUFHjETuufb06ciMp72eZO46qtBauWiS1T3rcUu
+    dataEntrant:
+      email: data.entrant@gmail.com
+      name: Data Entrant
+      password: $2b$12$avK4nyElcOkW9DCrwdjhYeF7y/0CuzDMCLWDB4rE5gt3v.ogLPjDm
 cookie:
   expiry_days: 100
   key: "1CD88BD7-95A7-B64D-9BEA-B56118FCC81B" # Must be string

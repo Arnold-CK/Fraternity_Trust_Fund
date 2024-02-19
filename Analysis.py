@@ -222,10 +222,11 @@ if authentication_status:
     months = fx.get_all_months()
 
     options = (
-        ["Dashboard", "Data Entry"]
-        if current_user == "Alvin Mulumba"
-        else ["Dashboard"]
+        ["Data Entry"]
+        if current_user == "Data Entrant"
+        else (["Dashboard", "Data Entry"] if current_user == "Alvin Mulumba" else ["Dashboard"])
     )
+
     option_icons = (
         ["bar-chart-line", "clipboard-data"]
         if current_user == "Alvin Mulumba"
